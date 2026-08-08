@@ -1,0 +1,118 @@
+diff --git a/Android.bp b/Android.bp
+index 3237938..df1721b 100644
+--- a/Android.bp
++++ b/Android.bp
+@@ -72,77 +72,91 @@ prebuilt_etc {
+ // so one mka serves both the emulator and the Exynos phone.
+ cc_prebuilt_binary {
+     name: "realsr-ncnn",
+-    srcs: ["realsr/x86_64/realsr-ncnn"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/realsr-ncnn"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/realsr-ncnn"],
++        },
+     },
+     check_elf_files: false,
+ }
+ 
+ cc_prebuilt_binary {
+     name: "realcugan-ncnn",
+-    srcs: ["realsr/x86_64/realcugan-ncnn"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/realcugan-ncnn"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/realcugan-ncnn"],
++        },
+     },
+     check_elf_files: false,
+ }
+ 
+ cc_prebuilt_binary {
+     name: "resize-ncnn",
+-    srcs: ["realsr/x86_64/resize-ncnn"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/resize-ncnn"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/resize-ncnn"],
++        },
+     },
+     check_elf_files: false,
+ }
+ 
+ cc_prebuilt_binary {
+     name: "srmd-ncnn",
+-    srcs: ["realsr/x86_64/srmd-ncnn"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/srmd-ncnn"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/srmd-ncnn"],
++        },
+     },
+     check_elf_files: false,
+ }
+ 
+ cc_prebuilt_binary {
+     name: "waifu2x-ncnn",
+-    srcs: ["realsr/x86_64/waifu2x-ncnn"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/waifu2x-ncnn"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/waifu2x-ncnn"],
++        },
+     },
+     check_elf_files: false,
+ }
+ 
+ cc_prebuilt_binary {
+     name: "anime4k-ncnn",
+-    srcs: ["realsr/x86_64/Anime4k"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/Anime4k"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/Anime4k"],
++        },
+     },
+     check_elf_files: false,
+ }
+ 
+ cc_prebuilt_library_shared {
+     name: "libncnn",
+-    srcs: ["realsr/x86_64/libncnn.so"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/libncnn.so"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/libncnn.so"],
++        },
+     },
+     check_elf_files: false,
+ }
+@@ -153,11 +167,13 @@ cc_prebuilt_library_shared {
+     // CLIs' DT_NEEDED); the module name is unique because clang's
+     // llvm_prebuilt_library_static "libomp" already owns "prebuilt_libomp".
+     stem: "libomp",
+-    srcs: ["realsr/x86_64/libomp.so"],
+     arch: {
+         arm64: {
+             srcs: ["realsr/arm64-v8a/libomp.so"],
+         },
++        x86_64: {
++            srcs: ["realsr/x86_64/libomp.so"],
++        },
+     },
+     check_elf_files: false,
+ }
