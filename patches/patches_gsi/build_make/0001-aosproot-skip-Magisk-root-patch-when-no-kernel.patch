@@ -1,0 +1,23 @@
+diff --git a/core/Makefile b/core/Makefile
+index ecb3dae4ae..6eedeae72d 100644
+--- a/core/Makefile
++++ b/core/Makefile
+@@ -1068,6 +1068,10 @@ endif
+ # before it is signed/finalized, so the final boot image is rooted. For
+ # targets that do not build a boot image (e.g. the emulator), the ramdisk
+ # itself is patched instead.
++# GSI/treble "system only" targets ship no kernel (TARGET_NO_KERNEL) and
++# build neither boot.img nor a ramdisk.img that gets flashed, so the
++# aosproot root injection is skipped for those builds.
++ifneq ($(strip $(TARGET_NO_KERNEL)),true)
+ ifneq ($(strip $(AOSPROOT_MAGISK_APK)),)
+ AOSPROOT := $(HOST_OUT)/bin/aosproot
+ AOSPROOT_PATCH_DEPS := $(AOSPROOT) $(AOSPROOT_MAGISK_APK)
+@@ -1100,6 +1104,7 @@ AOSPROOT_RAMDISK_PATCH_DEPS :=
+ define patch-ramdisk-with-aosproot
+ endef
+ endif
++endif
+ 
+ # -----------------------------------------------------------------
+ # the ramdisk

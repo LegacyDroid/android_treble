@@ -40,7 +40,7 @@ revert_group() {
     done
 }
 
-for g in patches_treble patches_treble_td patches_treble_prerequisite; do
+for g in patches_gsi patches_treble patches_treble_td patches_treble_prerequisite; do
     revert_group "$g"
 done
 

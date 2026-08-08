@@ -12,6 +12,7 @@
 | patches_treble_prerequisite | 7 | 0 |
 | patches_treble_td | 186 | 0 |
 | patches_treble | 4 | 1 (obsolete) |
+| patches_gsi | 1 | 0 |
 
 ## Notes / skipped
 
@@ -24,3 +25,7 @@
 4. The `patches_platform*` groups (personal/aesthetic UI tweaks) are intentionally
    **not** included; this kit only contains Treble/GSI functionality patches:
    prerequisite + td + treble groups.
+5. `patches_gsi/build_make/0001-...` (this kit, hand-written): makes the aosproot
+   hook (Magisk root via boot.img/ramdisk patch) a no-op when the target has no
+   kernel (`TARGET_NO_KERNEL` — GSI/system-only builds have no boot.img to root).
+   Regular device/emulator builds are unaffected (aosproot behaves as before).

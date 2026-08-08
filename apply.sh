@@ -53,7 +53,7 @@ apply_group() {
     done
 }
 
-for g in patches_treble_prerequisite patches_treble_td patches_treble; do
+for g in patches_treble_prerequisite patches_treble_td patches_treble patches_gsi; do
     apply_group "$g"
 done
 

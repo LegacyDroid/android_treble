@@ -18,6 +18,9 @@ public LOS21 TrebleDroid-based GSIs.
     sysbta-ish tweaks, telephony fallbacks).
   - `patches_treble` — build-side and device-side bits (device_phh_treble
     patches, `init.vndk-nodef.rc` removal, Magisk-compatible sbin restore...).
+  - `patches_gsi` — this ROM's own tweaks: aosproot (Magisk boot.img root)
+    is skipped for targets with no kernel (`TARGET_NO_KERNEL`), i.e. GSI /
+    system-only builds have no boot.img or ramdisk to patch.
 - `local_manifests/10-gsi.xml` — repo local manifest adding the Treble repos
   (device (phh), vendor overlays, vndk v28 prebuilt, ...). Copy it to
   `.repo/local_manifests/`.
