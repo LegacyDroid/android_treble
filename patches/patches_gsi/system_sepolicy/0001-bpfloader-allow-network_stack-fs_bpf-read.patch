@@ -1,0 +1,13 @@
+diff --git a/private/bpfloader.te b/private/bpfloader.te
+index be6f77c..60e20fb 100644
+--- a/private/bpfloader.te
++++ b/private/bpfloader.te
+@@ -34,7 +34,7 @@ neverallow { domain -bpfloader } bpffs_type:dir { add_name create remove_name wr
+ 
+ neverallow { domain            } bpffs_type:file ~{ create getattr map open read rename setattr write };
+ neverallow { domain -bpfloader } bpffs_type:file { create map open rename setattr };
+-neverallow { domain -bpfloader -gpuservice -lmkd -mediaprovider_app -netd -netutils_wrapper                -system_server } fs_bpf:file               { getattr read };
++neverallow { domain -bpfloader -gpuservice -lmkd -mediaprovider_app -netd -netutils_wrapper -network_stack -system_server } fs_bpf:file               { getattr read };
+ neverallow { domain -bpfloader                                                                                            } fs_bpf_loader:file        { getattr read };
+ neverallow { domain -bpfloader                                                              -network_stack                } fs_bpf_net_private:file   { getattr read };
+ neverallow { domain -bpfloader                                                              -network_stack -system_server } fs_bpf_net_shared:file    { getattr read };
