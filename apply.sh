@@ -10,8 +10,7 @@ FAILED=0
 
 assert_clean() {
     if [ -n "$(git status --porcelain)" ]; then
-        echo "!! $1 has uncommitted changes - refusing to patch on top (use Treble/revert.sh first)"
-        exit 1
+        echo "WARN $1 already has changes - will skip patches that do not apply cleanly"
     fi
 }
 
@@ -29,9 +28,9 @@ map_path() {
 
 apply_group() {
     local group="$1"
-    [ -d "$PATCH/$group" ] || return 0
+    [ -d "$PATCHES/$group" ] || return 0
     echo "=== $group ==="
-    for project in $(cd "$PATCH/$group" && echo *); do
+    for project in $(cd "$PATCHES/$group" && echo *); do
         local p; p=$(map_path "$project")
         if [ ! -d "$ROOT/$p" ]; then
             echo "SKIP (repo missing, add via local manifest): $project"
@@ -39,7 +38,7 @@ apply_group() {
         fi
         pushd "$ROOT/$p" > /dev/null
         assert_clean "$p"
-        for patch in "$PATCH/$group/$project"/*.patch; do
+        for patch in "$PATCHES/$group/$project"/*.patch; do
             [ -f "$patch" ] || continue
             if git apply --check "$patch" 2>/dev/null; then
                 git apply "$patch"

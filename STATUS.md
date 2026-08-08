@@ -11,7 +11,7 @@
 |-------|---------|--------|
 | patches_treble_prerequisite | 7 | 0 |
 | patches_treble_td | 186 | 0 |
-| patches_treble | 4 | 1 (obsolete) |
+| patches_treble | 13 | 1 (obsolete) |
 | patches_gsi | 1 | 0 |
 
 ## Notes / skipped
@@ -21,7 +21,9 @@
    (removed kernel-header generator in commit `65a70d9c`). Nothing needed.
 2. `device/phh/treble` patches apply only after `repo sync` with
    `local_manifests/10-gsi.xml` (that repo is not part of the default manifest).
-3. `treble_app` patches likewise require the manifest-provided `treble_app` repo.
+   After the 2026-08-08 sync, these now apply (9 patches).
+3. `treble_app` patches likewise require the manifest-provided `treble_app` repo —
+   also applied after the sync.
 4. The `patches_platform*` groups (personal/aesthetic UI tweaks) are intentionally
    **not** included; this kit only contains Treble/GSI functionality patches:
    prerequisite + td + treble groups.
