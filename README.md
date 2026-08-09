@@ -57,14 +57,9 @@ repo sync
 bash Treble/apply.sh            # git apply only — nothing is committed
 
 source build/envsetup.sh
-source vendor/lineage/vars/aosp_target_release   # gives $aosp_target_release (ap2a)
 lunch lineage_gsi_arm64-${aosp_target_release}-userdebug
-m -j6 systemimage
+m -j12 systemimage # or mka systemimage
 ```
-
-> This host has 15 GiB RAM — **use `-j6`, not `-j$(nproc)`**, or the build
-> thrashes swap. The first Soong analysis after a `config.mk` change takes
-> ~20 min single-core; be patient, it's not hung.
 
 Result (raw ext4 system image, the standard GSI artifact):
 
@@ -92,18 +87,3 @@ fastboot reboot
   ```sh
   zstd -d system.img.zst -o system.img
   ```
-
-## Design rules
-
-- **Zero commits, zero pushes.** After `apply.sh` the ROM tree only has
-  uncommitted working-tree changes. Rebuild any time with:
-  `bash Treble/revert.sh && bash Treble/apply.sh` (revert order is reversed on purpose).
-- **No root in this GSI.** The ROM ships root via boot.img Magisk patching
-  (aosproot); GSIs have no boot.img, so it's skipped (`TARGET_NO_KERNEL` gate).
-- **Vanilla only, for now.** GApps would need `device/lineage/gsi` +
-  `vendor/gapps` (`lineage_arm64_bgN`) — not part of this kit.
-
-## Status
-
-- Applied and built successfully on 2026-08-09 against this exact tree
-  (`legacydroid-14`, Android 14 / LineageOS 21). See `STATUS.md` for per-patch results.
