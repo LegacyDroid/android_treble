@@ -12,10 +12,13 @@
 | patches_treble_prerequisite | 7 | 0 |
 | patches_treble_td | 186 | 0 |
 | patches_treble | 13 | 1 (obsolete) |
-| patches_gsi | 1 | 0 |
+| patches_gsi | 4 | 0 |
 
 ## Notes / skipped
 
+0. **Build result**: `lineage_gsi_arm64-ap2a-userdebug` built successfully on
+   2026-08-09 → `out/target/product/generic_arm64/system.img` (raw ext4). Only
+   known skips/fixes are the ones below.
 1. `vendor_lineage/0001-build_soong-Disable-generated_kernel_headers.patch`
    (patches_treble) does **not** apply — already a no-op in this tree
    (removed kernel-header generator in commit `65a70d9c`). Nothing needed.
@@ -31,3 +34,7 @@
    hook (Magisk root via boot.img/ramdisk patch) a no-op when the target has no
    kernel (`TARGET_NO_KERNEL` — GSI/system-only builds have no boot.img to root).
    Regular device/emulator builds are unaffected (aosproot behaves as before).
+6. `patches_gsi` also carries three more build fixes (all verified on the
+   2026-08-09 build): sepolicy v28 dropped from compat list, `vendor_legacydroid`
+   ncnn prebuilts per-arch `srcs`, and the `network_stack` fs_bpf neverallow
+   exception. Details in `README.md`.

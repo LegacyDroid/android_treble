@@ -1,65 +1,109 @@
-# Treble / GSI patch kit for this ROM
+# Treble / GSI patch kit — LegacyDroid 14 (arm64)
 
-Turn this Android 14 (LineageOS 21 / "legacydroid-14") tree into an **arm64 GSI**
-without committing anything into the source tree. All patches, the local repo
-manifest and the helpers live here, in their own git repo.
+This kit turns the **LegacyDroid** source tree (LineageOS 21 / Android 14,
+branch `legacydroid-14`) into an **arm64 GSI** builder — without ever
+committing or pushing a single byte to the ROM's own git remotes.
 
-Based on the canonical LineageOS-21 + TrebleDroid patchset maintained by
-AndyCGYan (`lineage_patches_unified`, branch `lineage-21-td`) and used for the
-public LOS21 TrebleDroid-based GSIs.
+Everything lives here in `./Treble` as its own git repo:
 
-## What's inside
+- `patches/` — the complete, reproducible patchset
+- `local_manifests/10-gsi.xml` — the Treble device repos, fetched via `repo`
+- `apply.sh` / `revert.sh` — apply / undo everything with `git apply` (never commits)
+- `STATUS.md` — per-group application results against this exact tree
 
-- `patches/` — the GSI patch groups (git-format patches, one per repo path):
-  - `patches_treble_prerequisite` — undo LineageOS-specific hacks (UDFPS,
-    Bluetooth, protobuf-vendorcompat) that break generic boot/render.
-  - `patches_treble_td` — the TrebleDroid platform patchset (device support,
-    no-vendor resilience: selinux workarounds, legacy BPF/kernel support,
-    sysbta-ish tweaks, telephony fallbacks).
-  - `patches_treble` — build-side and device-side bits (device_phh_treble
-    patches, `init.vndk-nodef.rc` removal, Magisk-compatible sbin restore...).
-  - `patches_gsi` — this ROM's own tweaks: aosproot (Magisk boot.img root)
-    is skipped for targets with no kernel (`TARGET_NO_KERNEL`), i.e. GSI /
-    system-only builds have no boot.img or ramdisk to patch.
-- `local_manifests/10-gsi.xml` — repo local manifest adding the Treble repos
-  (device (phh), vendor overlays, vndk v28 prebuilt, ...). Copy it to
-  `.repo/local_manifests/`.
-- `apply.sh` / `revert.sh` — apply or undo the patchset in the source tree
-  with `git apply` (never commits).
-- `STATUS.md` — which patches applied here and which were skipped & why.
+Based on the canonical LineageOS 21 + TrebleDroid patchset maintained by
+AndyCGYan (`lineage_patches_unified`, branch `lineage-21-td`), which is what the
+public LOS21 TrebleDroid-based GSIs are built from.
 
-## Usage
+---
+
+## Patch groups
+
+| Group | Patches | What / why |
+|-------|---------|------------|
+| `patches_treble_prerequisite` | 7 | Undo LineageOS-specific hacks (UDFPS, Bluetooth, protobuf-vendorcompat) that break generic boot and rendering on non-LOS devices |
+| `patches_treble_td` | 186 | The TrebleDroid platform patch set: selinux workarounds, legacy BPF / kernel-5.10 support, sysbta-style tweaks, telephony fallbacks, no-vendor resilience |
+| `patches_treble` | 13 | Build- and device-side bits: `device/phh/treble` support, `init.vndk-nodef.rc` removal, Magisk-compatible sbin restore, `treble_app` |
+| `patches_gsi` | 4 | **This kit's own fixes** — without them the arm64 GSI would not build |
+
+The four hand-written `patches_gsi` patches, one line each:
+
+| Patch | Why |
+|-------|-----|
+| `build_make/0001-aosproot-skip-*` | GSI/system-only targets have no kernel → no boot.img or ramdisk to root. Root injection (Magisk via aosproot) becomes a no-op when `TARGET_NO_KERNEL` is set; device/emulator builds keep root. |
+| `build_make/0002-drop-sepolicy-v28-*` | LOS21 removed the sepolicy v28 Soong module (`prebuilts/api/28.0/Android.bp`); the TD list re-added version 28.0, so ninja demanded a CIL nobody builds. Dropped 28.0 from the compat list (29.0–34.0 untouched). |
+| `vendor_legacydroid/0001-ncnn-prebuilts-*` | Soong rejects `srcs` + `arch.arm64.srcs` on prebuilt modules ("multiple prebuilt source files") — moved both ABIs into per-arch `srcs` blocks (no top-level `srcs`). |
+| `system_sepolicy/0001-bpfloader-*` | The TD kit grants `network_stack` fs_bpf read/write (for BPF maps) but `bpfloader.te`'s neverallow only whitelisted `netd`; added the missing `-network_stack` exception so the policy compiles. |
+
+## Repos (manifest)
+
+`local_manifests/10-gsi.xml` adds the Treble repos the default manifest
+doesn't have:
+
+- `device/phh/treble` (TrebleDroid device), `treble_app`, `vendor/hardware_overlay`
+- `vendor/interfaces`, `vendor/vndk-tests`, `vendor/lptools`, `vendor/magisk`
+- `packages/apps/QcRilAm`, `prebuilts/vndk/v28`
+
+Wire it up and fetch:
 
 ```sh
-# 1. register the extra treble repos and fetch them
 cp Treble/local_manifests/10-gsi.xml .repo/local_manifests/
 repo sync
+```
 
-# 2. apply the patchset (working tree only, no commits)
-bash Treble/apply.sh
+## Build (verified 2026-08-09)
 
-# 3. build (NOT run here - owner runs this):
-#    source build/envsetup.sh
-#    source vendor/lineage/vars/aosp_target_release   # gives $aosp_target_release
-#    lunch lineage_arm64_bvN-${aosp_target_release}-userdebug
-#    make -j$(nproc --all) systemimage
-#    # system.img = GSI, flashable on any arm64 device with a Treble
-#    # user... (or make gsi with build/gsi/etc)
+```sh
+bash Treble/apply.sh            # git apply only — nothing is committed
 
-# undo everything again:
+source build/envsetup.sh
+source vendor/lineage/vars/aosp_target_release   # gives $aosp_target_release (ap2a)
+lunch lineage_gsi_arm64-${aosp_target_release}-userdebug
+m -j6 systemimage
+```
+
+> This host has 15 GiB RAM — **use `-j6`, not `-j$(nproc)`**, or the build
+> thrashes swap. The first Soong analysis after a `config.mk` change takes
+> ~20 min single-core; be patient, it's not hung.
+
+Result (raw ext4 system image, the standard GSI artifact):
+
+```sh
+out/target/product/generic_arm64/system.img      # ~2.4 GiB
+```
+
+Undo everything (including the file-tree changes):
+
+```sh
 bash Treble/revert.sh
 ```
 
-The `*_vN` / `*_gN` product variants (TVanilla / GApps) mirror upstream
-naming. `vendor/hardware_overlay` holds the TrebleApp APK used for vendor
-props override UI.
+### Flash
 
-## Notes / status
+```sh
+adb reboot bootloader
+fastboot -w flash system system.img
+fastboot reboot
+```
 
-- The full patchset was applied on 2026-08-08 against this exact tree
-  (branch `legacydroid-14`, Android 14 / LineageOS 21). See `STATUS.md` for
-  per-patch results.
-- Patches which expect repos not yet present (e.g. `device/phh/treble`,
-  `treble_app`) apply only after `repo sync` picks up the local manifest.
-- Nothing is committed or pushed to the ROMs' own remotes; the tree only has
-  uncommitted working-tree changes after `apply.sh`.
+- Device must be **unlocked**; `-w` wipes userdata (required when switching GSIs).
+- `system.img.zst` is for storage/transfer only — **decompress on the PC before flashing** (phones/bootloaders don't read `.zst` or `.zip` here):
+
+  ```sh
+  zstd -d system.img.zst -o system.img
+  ```
+
+## Design rules
+
+- **Zero commits, zero pushes.** After `apply.sh` the ROM tree only has
+  uncommitted working-tree changes. Rebuild any time with:
+  `bash Treble/revert.sh && bash Treble/apply.sh` (revert order is reversed on purpose).
+- **No root in this GSI.** The ROM ships root via boot.img Magisk patching
+  (aosproot); GSIs have no boot.img, so it's skipped (`TARGET_NO_KERNEL` gate).
+- **Vanilla only, for now.** GApps would need `device/lineage/gsi` +
+  `vendor/gapps` (`lineage_arm64_bgN`) — not part of this kit.
+
+## Status
+
+- Applied and built successfully on 2026-08-09 against this exact tree
+  (`legacydroid-14`, Android 14 / LineageOS 21). See `STATUS.md` for per-patch results.
