@@ -22,17 +22,21 @@ public LOS21 TrebleDroid-based GSIs are built from.
 | Group | Patches | What / why |
 |-------|---------|------------|
 | `patches_treble_prerequisite` | 7 | Undo LineageOS-specific hacks (UDFPS, Bluetooth, protobuf-vendorcompat) that break generic boot and rendering on non-LOS devices |
-| `patches_treble_td` | 186 | The TrebleDroid platform patch set: selinux workarounds, legacy BPF / kernel-5.10 support, sysbta-style tweaks, telephony fallbacks, no-vendor resilience |
-| `patches_treble` | 13 | Build- and device-side bits: `device/phh/treble` support, `init.vndk-nodef.rc` removal, Magisk-compatible sbin restore, `treble_app` |
-| `patches_gsi` | 5 | **This kit's own fixes** — without them the arm64 GSI would not build/boot right |
+| `patches_treble_td` | 184 | The TrebleDroid platform patch set: selinux workarounds, legacy BPF / kernel-5.10 support, sysbta-style tweaks, telephony fallbacks, no-vendor resilience |
+| `patches_treble` | 10 | Build- and device-side bits: `device/phh/treble` support, `init.vndk-nodef.rc` removal, Magisk-compatible sbin restore, `treble_app` |
+| `patches_gsi` | 4 | **This kit's own fixes** — without them the arm64 GSI would not build/boot right |
 
-The five hand-written `patches_gsi` patches, one line each:
+Patches that upstream has already merged (or that are dead on this tree)
+live in `patches_obsolete/`, which apply.sh/revert.sh never scan — so a
+fully-applied run ends with "All patches applied." instead of a false
+failure. See `STATUS.md` for why each was retired.
+
+The four hand-written `patches_gsi` patches, one line each:
 
 | Patch | Why |
 |-------|-----|
 | `build_make/0001-aosproot-skip-*` | GSI/system-only targets have no kernel → no boot.img or ramdisk to root. Root injection (Magisk via aosproot) becomes a no-op when `TARGET_NO_KERNEL` is set; device/emulator builds keep root. |
 | `build_make/0002-drop-sepolicy-v28-*` | LOS21 removed the sepolicy v28 Soong module (`prebuilts/api/28.0/Android.bp`); the TD list re-added version 28.0, so ninja demanded a CIL nobody builds. Dropped 28.0 from the compat list (29.0–34.0 untouched). |
-| `frameworks_base/0001-drop-duplicate-getNetworkClass-*` | LegacyDroid's frameworks/base already ships `getNetworkClass()` + `NETWORK_CLASS_*`; TD patch 0017 assumes AOSP (where they were removed) and inserts a second copy → "duplicate declaration of field". Drops the TD-introduced duplicate. |
 | `vendor_legacydroid/0001-ncnn-prebuilts-*` | Soong rejects `srcs` + `arch.arm64.srcs` on prebuilt modules ("multiple prebuilt source files") — moved both ABIs into per-arch `srcs` blocks (no top-level `srcs`). |
 | `system_sepolicy/0001-bpfloader-*` | The TD kit grants `network_stack` fs_bpf read/write (for BPF maps) but `bpfloader.te`'s neverallow only whitelisted `netd`; added the missing `-network_stack` exception so the policy compiles. |
 
@@ -85,8 +89,9 @@ bash Treble/revert.sh --clean   # additionally `git clean -fd` touched repos to
 
 Notes:
 
-- Patches that cannot be reverse-applied (e.g. the one genuinely obsolete TD
-  patch — see STATUS.md) are reported with `!!`, never skipped silently.
+- Patches that cannot be reverse-applied are reported with `!!`, never
+  skipped silently. Patches known to be dead on this tree (upstream already
+  merged them) live in `patches_obsolete/` and are not scanned at all.
 - Exit code is non-zero if anything looks off, so it can be scripted.
 - `--clean` wipes ALL untracked files in touched repos — only use it right
   after an apply→revert cycle with no other local work in those repos.

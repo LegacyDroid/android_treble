@@ -10,9 +10,12 @@
 | Group | Applied | Failed |
 |-------|---------|--------|
 | patches_treble_prerequisite | 7 | 0 |
-| patches_treble_td | 186 | 0 |
-| patches_treble | 13 | 1 (obsolete) |
+| patches_treble_td | 184 | 0 |
+| patches_treble | 10 | 0 |
 | patches_gsi | 4 | 0 |
+
+(2026-08-21: six dead/merged patches moved to `patches_obsolete/` — see
+changelog "convergence" entry. Counts reflect the active set.)
 
 ## Changelog
 
@@ -47,3 +50,30 @@
   New patch `patches_gsi/frameworks_base/0001-drop-duplicate-getNetworkClass-
   block-from-td-0017.patch` removes the TD-introduced copy. patches_gsi is
   now 5 patches.
+
+### 2026-08-21 (convergence)
+
+- **apply.sh made idempotent across repeated runs.** Two problems fixed:
+  1. **Duplicate insertion**: pure-addition patches (e.g., td 0031, 0006,
+     vendor800) found new offsets each run via `git apply --check`, silently
+     inserting duplicates. Added `content_already_present()` — checks the
+     first added line against the target file before applying. If already
+     present, reports `== (content match)` instead of applying.
+  2. **Telephony oscillation**: td `0017-TelephonyManager-bring-back-
+     getNetworkClass` re-added a block every run, then
+     `0001-drop-duplicate-getNetworkClass` removed it — both printed `OK`
+     forever. Both retired to `patches_obsolete/` (LegacyDroid already ships
+     `getNetworkClass()`).
+- **Also retired** (moved to `patches_obsolete/`):
+  - `platform_build/0001-Include-vndk-v28-*` — sole effect was adding `28.0`
+    to `PLATFORM_SEPOLICY_COMPAT_VERSIONS`, which
+    `build_make/0002-drop-sepolicy-v28-*` immediately removes (oscillator).
+  - `device_phh_treble/0001-Lineage-ify` + `0002-BOARD_EXT4_SHARE_DUP-*` —
+    upstream TrebleDroid already merged both.
+  - `vendor_lineage/0001-build_soong-*` — dead since day one.
+- **Dirty-repo handling**: patches that fail both directions on repos with
+  local changes (context drifted from upstream syncs or local commits) now
+  report `?? cannot verify` without failing the summary.
+- A fully-applied tree now ends with "All patches applied." — any future `!!`
+  is a real problem on a clean repo.
+- README/STATUS counts updated (td 184, gsi 4).

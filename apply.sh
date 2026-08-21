@@ -22,7 +22,6 @@ ensure_treble_repos() {
         cp "$MANIFEST_SRC" "$dst"
         echo "OK   installed local manifest: .repo/local_manifests/10-gsi.xml"
     fi
-    # Sync only the manifest projects that are still missing from the tree.
     local missing=""
     local path
     while IFS= read -r path; do
@@ -46,7 +45,6 @@ assert_clean() {
     fi
 }
 
-# Map a dir name like platform_frameworks_base to a real path under tree root.
 map_path() {
     local p="${1//_//}"
     p="${p#platform/}"
@@ -56,6 +54,30 @@ map_path() {
         treble/app) echo "treble_app";;
         *) echo "$p" ;;
     esac
+}
+
+# Check whether a patch's added content is already present in the target file.
+# Uses the first non-empty added line as a signature.  This catches the case
+# where git apply --check passes at a NEW offset (pure-addition patches with
+# non-unique surrounding context) but the effect is already in the file —
+# applying would silently insert a duplicate.
+content_already_present() {
+    local patch="$1" file="$2"
+    [ -f "$file" ] || return 1
+    # Only check pure additions — patches with removals (mixed or remove-only)
+    # can't be content-checked reliably.
+    grep -q '^-\([^-]\|$\)' "$patch" && return 1
+    # Get first 3 substantive added lines (skip comments, blanks, annotations)
+    # as a combined signature — one-line matches are too generic.
+    local sig
+    sig=$(sed -n '/^+[^+]/s/^+//p' "$patch" | sed '/^[[:space:]]*$\|^[[:space:]]*\/[/*]\|^[[:space:]]*\*\|^[[:space:]]*@/d' | head -3)
+    [ -z "$sig" ] && return 1
+    # All 3 lines must be present (not necessarily adjacent) in the file
+    local all_present=true
+    while IFS= read -r line; do
+        grep -qF "$line" "$file" 2>/dev/null || { all_present=false; break; }
+    done <<< "$sig"
+    $all_present
 }
 
 apply_group() {
@@ -70,13 +92,23 @@ apply_group() {
         fi
         pushd "$ROOT/$p" > /dev/null
         assert_clean "$p"
+        local dirty=0
+        [ -n "$(git status --porcelain)" ] && dirty=1
         for patch in "$PATCHES/$group/$project"/*.patch; do
             [ -f "$patch" ] || continue
             if git apply --check "$patch" 2>/dev/null; then
-                git apply "$patch"
-                echo "OK   $p/$(basename "$patch")"
+                local filepath
+                filepath=$(grep '^diff --git' "$patch" | head -1 | sed 's|^diff --git a/[^ ]* b/||')
+                if [ -n "$filepath" ] && content_already_present "$patch" "$filepath"; then
+                    echo "==   already applied (content match): $p/$(basename "$patch")"
+                else
+                    git apply "$patch"
+                    echo "OK   $p/$(basename "$patch")"
+                fi
             elif git apply --reverse --check "$patch" 2>/dev/null; then
                 echo "==   already applied: $p/$(basename "$patch")"
+            elif [ "$dirty" = 1 ]; then
+                echo "??   cannot verify (repo has local changes): $p/$(basename "$patch")"
             else
                 echo "!!   SKIP (does not apply): $p/$(basename "$patch")"
                 FAILED=1
