@@ -37,3 +37,13 @@
   GSI but never installed. Now runs as `u:r:shell:s0 shell shell`. The
   temporary kit patch `patches_gsi/vendor_legacydroid/0002-*` was removed;
   patches_gsi is back to 4 patches.
+
+### 2026-08-21 (later)
+
+- **Build fix**: TD patch `frameworks_base/0017-TelephonyManager-bring-back-
+  getNetworkClass` duplicated `getNetworkClass()` + `NETWORK_CLASS_*` —
+  LegacyDroid's frameworks/base never removed them (AOSP did, which the TD
+  patch assumes). Java compile fails with "duplicate declaration of field".
+  New patch `patches_gsi/frameworks_base/0001-drop-duplicate-getNetworkClass-
+  block-from-td-0017.patch` removes the TD-introduced copy. patches_gsi is
+  now 5 patches.
