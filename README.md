@@ -24,7 +24,7 @@ public LOS21 TrebleDroid-based GSIs are built from.
 | `patches_treble_prerequisite` | 7 | Undo LineageOS-specific hacks (UDFPS, Bluetooth, protobuf-vendorcompat) that break generic boot and rendering on non-LOS devices |
 | `patches_treble_td` | 186 | The TrebleDroid platform patch set: selinux workarounds, legacy BPF / kernel-5.10 support, sysbta-style tweaks, telephony fallbacks, no-vendor resilience |
 | `patches_treble` | 13 | Build- and device-side bits: `device/phh/treble` support, `init.vndk-nodef.rc` removal, Magisk-compatible sbin restore, `treble_app` |
-| `patches_gsi` | 4 | **This kit's own fixes** — without them the arm64 GSI would not build |
+| `patches_gsi` | 4 | **This kit's own fixes** — without them the arm64 GSI would not build/boot right |
 
 The four hand-written `patches_gsi` patches, one line each:
 
@@ -34,6 +34,10 @@ The four hand-written `patches_gsi` patches, one line each:
 | `build_make/0002-drop-sepolicy-v28-*` | LOS21 removed the sepolicy v28 Soong module (`prebuilts/api/28.0/Android.bp`); the TD list re-added version 28.0, so ninja demanded a CIL nobody builds. Dropped 28.0 from the compat list (29.0–34.0 untouched). |
 | `vendor_legacydroid/0001-ncnn-prebuilts-*` | Soong rejects `srcs` + `arch.arm64.srcs` on prebuilt modules ("multiple prebuilt source files") — moved both ABIs into per-arch `srcs` blocks (no top-level `srcs`). |
 | `system_sepolicy/0001-bpfloader-*` | The TD kit grants `network_stack` fs_bpf read/write (for BPF maps) but `bpfloader.te`'s neverallow only whitelisted `netd`; added the missing `-network_stack` exception so the policy compiles. |
+
+(The Termux/SimpMusic boot-install fix lives upstream in
+`vendor/legacydroid` since 5fa20d8 — shell-domain install instead of
+magisk — so no kit patch is needed for it.)
 
 ## Repos (manifest)
 
@@ -70,8 +74,19 @@ out/target/product/generic_arm64/system.img      # ~2.4 GiB
 Undo everything (including the file-tree changes):
 
 ```sh
-bash Treble/revert.sh
+bash Treble/revert.sh           # reverts in reverse order, then audits every
+                                # touched repo and reports anything not pristine
+bash Treble/revert.sh --clean   # additionally `git clean -fd` touched repos to
+                                # drop untracked files/empty dirs left by patches
 ```
+
+Notes:
+
+- Patches that cannot be reverse-applied (e.g. the one genuinely obsolete TD
+  patch — see STATUS.md) are reported with `!!`, never skipped silently.
+- Exit code is non-zero if anything looks off, so it can be scripted.
+- `--clean` wipes ALL untracked files in touched repos — only use it right
+  after an apply→revert cycle with no other local work in those repos.
 
 ### Flash
 
