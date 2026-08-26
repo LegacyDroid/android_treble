@@ -1,25 +1,23 @@
 #!/bin/bash
-# revert.sh - undo the Treble/GSI patchset that was applied with Treble/apply.sh
-# (git apply -R, in reverse order). Does NOT touch commits; untracked files
-# created by patches are removed with git clean -fd (only with --clean).
+# revert.sh - fully undo the Treble/GSI patchset that was applied with
+# Treble/apply.sh:
+#   1. reverse-apply every patch (git apply -R), last group/patch first
+#   2. remove the kit's local manifest (.repo/local_manifests/10-gsi.xml)
+#   3. in every touched repo, discard any remaining uncommitted changes
+#      (git checkout HEAD -- .) and drop untracked files (git clean -fd),
+#      so the tree ends up matching its git HEAD
+#
+# Commits are never touched.
 #
 # Nothing is skipped silently: every patch that cannot be reverse-applied is
-# reported, and a final audit lists every touched repo that is still not
-# pristine (modified tracked files and/or untracked leftovers), so a partial
-# revert can never go unnoticed.
+# reported, and a final audit lists anything that survived cleanup.
 #
-# Usage:
-#   bash Treble/revert.sh           # revert + report leftovers
-#   bash Treble/revert.sh --clean   # also run `git clean -fd` in touched
-#                                   # repos to drop untracked files created
-#                                   # by patches (and leftover empty dirs).
-#                                   # Only do this with no other local work!
+# Usage: bash Treble/revert.sh
 set -e
 
 ROOT="$(dirname "$(readlink -f "$0")")/.."
 PATCHES="$ROOT/Treble/patches"
-CLEAN=0
-[ "${1:-}" = "--clean" ] && CLEAN=1
+MANIFEST_DST="$ROOT/.repo/local_manifests/10-gsi.xml"
 
 FAILED=0
 TOUCHED=""
@@ -65,39 +63,49 @@ revert_group() {
     done
 }
 
+remove_manifest() {
+    if [ ! -f "$MANIFEST_DST" ]; then
+        echo "OK   no local manifest installed"
+        return 0
+    fi
+    rm "$MANIFEST_DST"
+    rmdir "$(dirname "$MANIFEST_DST")" 2>/dev/null || true
+    echo "OK   removed local manifest: .repo/local_manifests/10-gsi.xml"
+}
+
 for g in patches_gsi patches_treble patches_treble_td patches_treble_prerequisite; do
     revert_group "$g"
 done
 
 echo ""
-echo "=== Audit: touched repos still not pristine ==="
+echo "=== Local manifest ==="
+remove_manifest
+
+echo ""
+echo "=== Cleanup: force touched repos back to HEAD ==="
 DIRTY=0
 for p in $TOUCHED; do
     pushd "$ROOT/$p" > /dev/null
     st="$(git status --porcelain)"
-    leftovers="$(git clean -ndf)"
-    if [ -n "$st" ] || [ -n "$leftovers" ]; then
-        DIRTY=1
+    if [ -n "$st" ]; then
         echo "-- $p"
-        [ -n "$st" ] && echo "$st" | sed 's/^/     /'
-        [ -n "$leftovers" ] && echo "$leftovers" | sed 's/^/     /'
-        if [ "$CLEAN" = 1 ] && [ -n "$leftovers" ]; then
-            git clean -fd > /dev/null
-            echo "     (ran git clean -fd)"
-        fi
+        echo "$st" | sed 's/^/     /'
+        git checkout HEAD -- .
+        git clean -fd > /dev/null
+        echo "     (discarded: git checkout HEAD -- . && git clean -fd)"
+        [ -n "$(git status --porcelain)" ] && DIRTY=1
     fi
     popd > /dev/null
 done
 if [ "$DIRTY" = 0 ]; then
-    echo "(none - every touched repo matches its git HEAD)"
+    echo "(every touched repo now matches its git HEAD)"
 else
-    echo "Tracked-file diffs above = revert was INCOMPLETE; untracked/empty-dir"
-    echo "lines above = patch-created leftovers (re-run with --clean to drop)."
+    echo "!! some repos are still not pristine after cleanup - inspect above."
 fi
 
 echo ""
 if [ "$FAILED" = 1 ] || [ "$DIRTY" = 1 ]; then
-    echo "Finished WITH WARNINGS - inspect the '!!' and audit output above."
+    echo "Finished WITH WARNINGS - inspect the '!!' output above."
     exit 1
 fi
 echo "Revert complete."
