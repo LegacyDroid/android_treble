@@ -72,12 +72,20 @@ content_already_present() {
     local sig
     sig=$(sed -n '/^+[^+]/s/^+//p' "$patch" | sed '/^[[:space:]]*$\|^[[:space:]]*\/[/*]\|^[[:space:]]*\*\|^[[:space:]]*@/d' | head -3)
     [ -z "$sig" ] && return 1
-    # All 3 lines must be present (not necessarily adjacent) in the file
-    local all_present=true
-    while IFS= read -r line; do
-        grep -qF "$line" "$file" 2>/dev/null || { all_present=false; break; }
-    done <<< "$sig"
-    $all_present
+    # All signature lines must appear CONSECUTIVELY (same order, adjacent)
+    # in the file. Scattered matches are false positives: e.g. a patch
+    # adding "case KeyEvent.KEYCODE_HOME:" to one switch block was skipped
+    # because that line also existed in a different switch block.
+    awk -v sig="$sig" '
+        BEGIN { n = split(sig, s, "\n") }
+        {
+            for (i = n; i > 1; i--) buf[i] = buf[i - 1]
+            buf[1] = $0
+            ok = 1
+            for (i = 1; i <= n && ok; i++) if (buf[i] != s[i]) ok = 0
+            if (ok) found = 1
+        }
+        END { exit !found }' "$file"
 }
 
 apply_group() {
