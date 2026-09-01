@@ -10,8 +10,8 @@
 | Group | Applied | Failed |
 |-------|---------|--------|
 | patches_treble_prerequisite | 7 | 0 |
-| patches_treble_td | 184 | 0 |
-| patches_treble | 10 | 0 |
+| patches_treble_td | 185 | 0 |
+| patches_treble | 13 | 0 |
 | patches_gsi | 4 | 0 |
 
 (2026-08-21: six dead/merged patches moved to `patches_obsolete/` — see
@@ -76,4 +76,4 @@ changelog "convergence" entry. Counts reflect the active set.)
   report `?? cannot verify` without failing the summary.
 - A fully-applied tree now ends with "All patches applied." — any future `!!`
   is a real problem on a clean repo.
-- README/STATUS counts updated (td 184, gsi 4).
+- README/STATUS counts updated (td 185, treble 13, gsi 4).
